@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -17,13 +17,12 @@ type Database struct {
 
 func NewConnection(cfg *config.Config) (*Database, error) {
 	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Database.Host,
-		cfg.Database.Port,
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.Database.User,
 		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
 		cfg.Database.Name,
-		cfg.Database.SSLMode,
 	)
 
 	gormConfig := &gorm.Config{
@@ -33,7 +32,7 @@ func NewConnection(cfg *config.Config) (*Database, error) {
 		},
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), gormConfig)
+	db, err := gorm.Open(mysql.Open(dsn), gormConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}

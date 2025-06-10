@@ -25,8 +25,8 @@ type (
 
 	DatabaseConfig struct {
 		Host     string `envconfig:"HOST" default:"localhost"`
-		Port     string `envconfig:"PORT" default:"5432"`
-		User     string `envconfig:"USER" default:"postgres"`
+		Port     string `envconfig:"PORT" default:"3306"`
+		User     string `envconfig:"USER" default:"root"`
 		Password string `envconfig:"PASSWORD" required:"false"`
 		Name     string `envconfig:"NAME" default:"e_ticketing_dev"`
 		SSLMode  string `envconfig:"SSL_MODE" default:"disable"`

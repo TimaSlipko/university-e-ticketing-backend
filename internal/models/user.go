@@ -2,9 +2,9 @@ package models
 
 type User struct {
 	ID           uint   `json:"id" gorm:"primaryKey"`
-	Username     string `json:"username" gorm:"uniqueIndex;not null"`
+	Username     string `json:"username" gorm:"unique;not null"`
 	PasswordHash string `json:"-" gorm:"not null"`
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
+	Email        string `json:"email" gorm:"unique;not null"`
 	Name         string `json:"name" gorm:"not null"`
 	Surname      string `json:"surname" gorm:"not null"`
 
@@ -16,9 +16,9 @@ type User struct {
 
 type Seller struct {
 	ID           uint   `json:"id" gorm:"primaryKey"`
-	Username     string `json:"username" gorm:"uniqueIndex;not null"`
+	Username     string `json:"username" gorm:"unique;not null"`
 	PasswordHash string `json:"-" gorm:"not null"`
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
+	Email        string `json:"email" gorm:"unique;not null"`
 	Name         string `json:"name" gorm:"not null"`
 	Surname      string `json:"surname" gorm:"not null"`
 
@@ -28,9 +28,9 @@ type Seller struct {
 
 type Admin struct {
 	ID           uint   `json:"id" gorm:"primaryKey"`
-	Username     string `json:"username" gorm:"uniqueIndex;not null"`
+	Username     string `json:"username" gorm:"unique;not null"`
 	PasswordHash string `json:"-" gorm:"not null"`
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
+	Email        string `json:"email" gorm:"unique;not null"`
 	Name         string `json:"name" gorm:"not null"`
 	Surname      string `json:"surname" gorm:"not null"`
 	AdminRole    int    `json:"admin_role" gorm:"default:1"` // 1=regular admin, 2=super admin

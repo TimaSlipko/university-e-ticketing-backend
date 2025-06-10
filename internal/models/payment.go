@@ -32,8 +32,8 @@ type Payment struct {
 type PaymentMethod struct {
 	ID        uint        `json:"id" gorm:"primaryKey"`
 	Type      PaymentType `json:"type" gorm:"not null"`
-	Token     string      `json:"token" gorm:"not null"`  // Encrypted token
-	Data      string      `json:"data" gorm:"type:jsonb"` // Additional payment data as JSON
+	Token     string      `json:"token" gorm:"not null"` // Encrypted token
+	Data      string      `json:"data" gorm:"type:json"` // Additional payment data as JSON
 	UserID    uint        `json:"user_id" gorm:"not null"`
 	IsDefault bool        `json:"is_default" gorm:"default:false"`
 

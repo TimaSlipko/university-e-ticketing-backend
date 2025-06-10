@@ -23,7 +23,7 @@ It is a ticket-selling web application built with Go, featuring event management
 
 - **Backend**: Go 1.21+
 - **Web Framework**: Gin
-- **Database**: PostgreSQL with GORM
+- **Database**: MySQL with GORM
 - **Authentication**: JWT
 - **Configuration**: Environment-based with envconfig
 
@@ -31,8 +31,8 @@ It is a ticket-selling web application built with Go, featuring event management
 
 ### Prerequisites
 
-- Go 1.21 or higher
-- PostgreSQL 14+
+- Go 1.24 or higher
+- MySQL
 - Redis 6+
 
 ### Installation
@@ -93,28 +93,7 @@ make docker-stop      # Stop Docker containers
 
 ### Environment Variables
 
-Create a `.env` file based on `.env.example`:
-
-```bash
-# Server Configuration
-PORT=8080
-ENVIRONMENT=development
-
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_NAME=e_ticketing_dev
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-key
-JWT_ACCESS_DURATION=15m
-JWT_REFRESH_DURATION=168h
-
-# Payment Configuration
-PAYMENT_MOCK_PAYMENTS=true
-```
+Create a `.env` file based on `.env.example`
 
 ## 📚 API Documentation
 

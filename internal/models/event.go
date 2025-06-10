@@ -15,7 +15,7 @@ type Event struct {
 	Description string      `json:"description" gorm:"type:text"`
 	Date        int64       `json:"date" gorm:"not null"` // Unix timestamp
 	Address     string      `json:"address" gorm:"not null"`
-	Data        string      `json:"data" gorm:"type:jsonb"` // Additional event data as JSON
+	Data        string      `json:"data" gorm:"type:json"` // Additional event data as JSON
 	SellerID    uint        `json:"seller_id" gorm:"not null"`
 	Status      EventStatus `json:"status" gorm:"default:1"`
 
