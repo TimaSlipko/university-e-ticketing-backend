@@ -2,6 +2,7 @@
 package repositories
 
 import (
+	"errors"
 	"eticketing/internal/models"
 	"gorm.io/gorm"
 )
@@ -27,10 +28,6 @@ func (r *purchasedTicketRepository) GetByID(id uint) (*models.PurchasedTicket, e
 	return &ticket, nil
 }
 
-func (r *purchasedTicketRepository) Update(ticket *models.PurchasedTicket) error {
-	return r.db.Save(ticket).Error
-}
-
 func (r *purchasedTicketRepository) ListByUser(userID uint) ([]models.PurchasedTicket, error) {
 	var tickets []models.PurchasedTicket
 	err := r.db.Preload("Ticket").Preload("Ticket.Event").Where("user_id = ?", userID).Find(&tickets).Error
@@ -41,4 +38,15 @@ func (r *purchasedTicketRepository) CountByUser(userID uint) (int64, error) {
 	var count int64
 	err := r.db.Model(&models.PurchasedTicket{}).Where("user_id = ?", userID).Count(&count).Error
 	return count, err
+}
+
+func (r *purchasedTicketRepository) UpdateOwnership(ticketID uint, newUserID uint) error {
+	result := r.db.Exec("UPDATE purchased_tickets SET user_id = ? WHERE id = ?", newUserID, ticketID)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("no rows updated")
+	}
+	return nil
 }

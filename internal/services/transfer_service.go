@@ -59,6 +59,15 @@ func (s *TransferService) InitiateTransfer(req *InitiateTransferRequest) (*Trans
 		return nil, errors.New("cannot transfer used ticket")
 	}
 
+	// Check if ticket already has active transfer
+	hasActiveTransfer, err := s.transferRepo.HasActiveTransferForTicket(req.PurchasedTicketID)
+	if err != nil {
+		return nil, errors.New("failed to check existing transfers")
+	}
+	if hasActiveTransfer {
+		return nil, errors.New("ticket already has an active transfer")
+	}
+
 	// Find recipient user by email
 	toUser, err := s.userRepo.GetByEmail(req.ToUserEmail)
 	if err != nil {
@@ -193,7 +202,7 @@ func (s *TransferService) AcceptTransfer(transferID, userID uint) error {
 	}
 
 	purchasedTicket.UserID = transfer.ToUserID
-	if err := s.purchasedTicketRepo.Update(purchasedTicket); err != nil {
+	if err := s.purchasedTicketRepo.UpdateOwnership(transfer.PurchasedTicketID, transfer.ToUserID); err != nil {
 		return errors.New("failed to transfer ticket ownership")
 	}
 
@@ -245,7 +254,15 @@ func (s *TransferService) GetTransferHistory(userID uint) ([]TransferHistoryResp
 		return nil, errors.New("failed to retrieve transfer history")
 	}
 
+	// Get rejected/cancelled transfers from ActiveTicketTransfer table
+	rejectedTransfers, err := s.transferRepo.ListRejectedByUser(userID)
+	if err != nil {
+		return nil, errors.New("failed to retrieve rejected transfers")
+	}
+
 	var responses []TransferHistoryResponse
+
+	// Add completed transfers
 	for _, transfer := range doneTransfers {
 		response := TransferHistoryResponse{
 			ID: transfer.ID,
@@ -276,6 +293,43 @@ func (s *TransferService) GetTransferHistory(userID uint) ([]TransferHistoryResp
 			},
 			Date:        transfer.Date,
 			CompletedAt: transfer.CompletedAt,
+			Status:      models.TransferStatusAccepted, // Completed transfers are accepted
+		}
+		responses = append(responses, response)
+	}
+
+	// Add rejected/cancelled transfers
+	for _, transfer := range rejectedTransfers {
+		response := TransferHistoryResponse{
+			ID: transfer.ID,
+			FromUser: UserInfo{
+				ID:       transfer.FromUser.ID,
+				Username: transfer.FromUser.Username,
+				Email:    transfer.FromUser.Email,
+				Name:     transfer.FromUser.Name,
+				Surname:  transfer.FromUser.Surname,
+				UserType: models.UserTypeUser,
+			},
+			ToUser: UserInfo{
+				ID:       transfer.ToUser.ID,
+				Username: transfer.ToUser.Username,
+				Email:    transfer.ToUser.Email,
+				Name:     transfer.ToUser.Name,
+				Surname:  transfer.ToUser.Surname,
+				UserType: models.UserTypeUser,
+			},
+			TicketInfo: PurchasedTicketInfo{
+				ID:          transfer.PurchasedTicket.ID,
+				TicketID:    transfer.PurchasedTicket.TicketID,
+				Title:       transfer.PurchasedTicket.Title,
+				Description: transfer.PurchasedTicket.Description,
+				Place:       transfer.PurchasedTicket.Place,
+				Price:       transfer.PurchasedTicket.Price,
+				IsUsed:      transfer.PurchasedTicket.IsUsed,
+			},
+			Date:        transfer.Date,
+			CompletedAt: time.Now().Unix(), // Use current time for rejected
+			Status:      transfer.Status,
 		}
 		responses = append(responses, response)
 	}
@@ -284,10 +338,11 @@ func (s *TransferService) GetTransferHistory(userID uint) ([]TransferHistoryResp
 }
 
 type TransferHistoryResponse struct {
-	ID          uint                `json:"id"`
-	FromUser    UserInfo            `json:"from_user"`
-	ToUser      UserInfo            `json:"to_user"`
-	TicketInfo  PurchasedTicketInfo `json:"ticket_info"`
-	Date        int64               `json:"date"`
-	CompletedAt int64               `json:"completed_at"`
+	ID          uint                  `json:"id"`
+	FromUser    UserInfo              `json:"from_user"`
+	ToUser      UserInfo              `json:"to_user"`
+	TicketInfo  PurchasedTicketInfo   `json:"ticket_info"`
+	Date        int64                 `json:"date"`
+	CompletedAt int64                 `json:"completed_at"`
+	Status      models.TransferStatus `json:"status"` // Add this field
 }

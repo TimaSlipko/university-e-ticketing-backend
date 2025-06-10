@@ -64,7 +64,7 @@ func (h *TransferHandler) AcceptTransfer(c *gin.Context) {
 		return
 	}
 
-	transferID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	transferID, err := strconv.ParseUint(c.Param("transfer_id"), 10, 32)
 	if err != nil {
 		utils.BadRequestResponse(c, "Invalid transfer ID")
 		return
@@ -86,7 +86,7 @@ func (h *TransferHandler) RejectTransfer(c *gin.Context) {
 		return
 	}
 
-	transferID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	transferID, err := strconv.ParseUint(c.Param("transfer_id"), 10, 32)
 	if err != nil {
 		utils.BadRequestResponse(c, "Invalid transfer ID")
 		return

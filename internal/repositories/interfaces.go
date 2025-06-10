@@ -71,7 +71,7 @@ type TicketRepository interface {
 type PurchasedTicketRepository interface {
 	Create(ticket *models.PurchasedTicket) error
 	GetByID(id uint) (*models.PurchasedTicket, error)
-	Update(ticket *models.PurchasedTicket) error
+	UpdateOwnership(ticketID uint, newUserID uint) error
 	ListByUser(userID uint) ([]models.PurchasedTicket, error)
 	CountByUser(userID uint) (int64, error)
 }
@@ -92,6 +92,8 @@ type TransferRepository interface {
 	CreateDone(transfer *models.DoneTicketTransfer) error
 	ListActiveByUser(userID uint) ([]models.ActiveTicketTransfer, error)
 	ListDoneByUser(userID uint) ([]models.DoneTicketTransfer, error)
+	ListRejectedByUser(userID uint) ([]models.ActiveTicketTransfer, error)
+	HasActiveTransferForTicket(ticketID uint) (bool, error)
 }
 
 type SaleRepository interface {
