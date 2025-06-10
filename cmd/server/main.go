@@ -57,6 +57,7 @@ func main() {
 	purchasedTicketRepo := repositories.NewPurchasedTicketRepository(db.DB)
 	paymentRepo := repositories.NewPaymentRepository(db.DB)
 	transferRepo := repositories.NewTransferRepository(db.DB)
+	saleRepo := repositories.NewSaleRepository(db.DB) // Add this line
 
 	// Initialize services
 	authService := services.NewAuthService(userRepo, sellerRepo, adminRepo, jwtManager)
@@ -65,8 +66,10 @@ func main() {
 	adminService := services.NewAdminService(adminRepo, userRepo, sellerRepo, eventRepo, paymentRepo)
 	paymentService := services.NewPaymentService(paymentRepo, cfg.Payment.IsMocked)
 	eventService := services.NewEventService(eventRepo, ticketRepo)
-	ticketService := services.NewTicketService(ticketRepo, purchasedTicketRepo, eventRepo, paymentService)
+	ticketService := services.NewTicketService(ticketRepo, purchasedTicketRepo, eventRepo, saleRepo, paymentService) // Updated this line
 	transferService := services.NewTransferService(transferRepo, purchasedTicketRepo, userRepo)
+	saleService := services.NewSaleService(saleRepo, eventRepo)
+	pdfService := services.NewPDFService()
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -76,6 +79,8 @@ func main() {
 	eventHandler := handlers.NewEventHandler(eventService)
 	ticketHandler := handlers.NewTicketHandler(ticketService)
 	transferHandler := handlers.NewTransferHandler(transferService)
+	saleHandler := handlers.NewSaleHandler(saleService)
+	pdfHandler := handlers.NewPDFHandler(pdfService, purchasedTicketRepo, eventRepo)
 
 	gin.SetMode(gin.ReleaseMode)
 
@@ -88,6 +93,8 @@ func main() {
 		eventHandler,
 		ticketHandler,
 		transferHandler,
+		saleHandler,
+		pdfHandler,
 		jwtManager,
 	)
 
@@ -138,6 +145,8 @@ func setupRouter(
 	eventHandler *handlers.EventHandler,
 	ticketHandler *handlers.TicketHandler,
 	transferHandler *handlers.TransferHandler,
+	saleHandler *handlers.SaleHandler,
+	pdfHandler *handlers.PDFHandler,
 	jwtManager *utils.JWTManager,
 ) *gin.Engine {
 	router := gin.New()
@@ -176,7 +185,15 @@ func setupRouter(
 		{
 			events.GET("", eventHandler.GetEvents)
 			events.GET("/:event_id", eventHandler.GetEvent)
-			events.GET("/:event_id/tickets", ticketHandler.GetEventTickets)
+			events.GET("/:event_id/tickets", ticketHandler.GetEventTickets)                         // Legacy endpoint
+			events.GET("/:event_id/grouped-tickets", ticketHandler.GetAvailableGroupedEventTickets) // New grouped endpoint
+			events.GET("/:event_id/sales", saleHandler.GetSalesByEvent)
+		}
+
+		// Sales routes (public for viewing specific sale)
+		sales := api.Group("/sales")
+		{
+			sales.GET("/:sale_id", saleHandler.GetSale)
 		}
 
 		// Protected routes
@@ -195,9 +212,13 @@ func setupRouter(
 			// Ticket routes
 			tickets := protected.Group("/tickets")
 			{
-				tickets.POST("/purchase", ticketHandler.PurchaseTicket)
+				tickets.POST("/purchase", ticketHandler.PurchaseTicket)                // Legacy individual ticket purchase
+				tickets.POST("/purchase-group", ticketHandler.PurchaseTicketFromGroup) // New grouped ticket purchase
 				tickets.GET("/my", ticketHandler.GetMyTickets)
 				tickets.POST("/transfer", transferHandler.InitiateTransfer) // Updated to use transferHandler
+
+				tickets.GET("/:ticket_id/download", pdfHandler.DownloadTicketPDF)
+				tickets.GET("/:ticket_id/view", pdfHandler.ViewTicketPDF)
 			}
 
 			// Transfer routes
@@ -222,6 +243,16 @@ func setupRouter(
 				seller.GET("/events", eventHandler.GetMyEvents)
 				seller.PUT("/events/:event_id", eventHandler.UpdateEvent)
 				seller.DELETE("/events/:event_id", eventHandler.DeleteEvent)
+
+				// Sales management for sellers
+				seller.POST("/sales", saleHandler.CreateSale)
+				seller.PUT("/sales/:sale_id", saleHandler.UpdateSale)
+				seller.DELETE("/sales/:sale_id", saleHandler.DeleteSale)
+
+				seller.POST("/tickets", ticketHandler.CreateTickets)
+				seller.PUT("/events/:event_id/tickets", ticketHandler.UpdateTickets)
+				seller.DELETE("/events/:event_id/tickets", ticketHandler.DeleteTickets)
+				seller.GET("/events/:event_id/grouped-tickets", ticketHandler.GetGroupedEventTickets)
 			}
 
 			// Admin routes

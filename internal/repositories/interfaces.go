@@ -52,11 +52,20 @@ type EventRepository interface {
 type TicketRepository interface {
 	Create(ticket *models.Ticket) error
 	GetByID(id uint) (*models.Ticket, error)
+	GetByIDForUpdate(id uint) (*models.Ticket, error) // New method with locking
 	Update(ticket *models.Ticket) error
 	Delete(id uint) error
 	ListByEvent(eventID uint) ([]models.Ticket, error)
 	ListAvailableByEvent(eventID uint) ([]models.Ticket, error)
 	CountAvailableByEvent(eventID uint) (int64, error)
+
+	// New methods for grouped ticket management
+	ListByGroupCriteria(eventID uint, price float64, ticketType models.TicketType, isVip bool, title, place string, saleID uint, includeSold bool) ([]models.Ticket, error)
+	ListGroupedByEvent(eventID uint) ([]models.GroupedTicket, error)
+	ListAvailableGroupedByEvent(eventID uint) ([]models.GroupedTicket, error)
+
+	// New method for locking available tickets during purchase
+	FindAndLockAvailableTickets(eventID uint, price float64, ticketType models.TicketType, isVip bool, title, place string, saleID uint, quantity int) ([]models.Ticket, error)
 }
 
 type PurchasedTicketRepository interface {
@@ -83,4 +92,12 @@ type TransferRepository interface {
 	CreateDone(transfer *models.DoneTicketTransfer) error
 	ListActiveByUser(userID uint) ([]models.ActiveTicketTransfer, error)
 	ListDoneByUser(userID uint) ([]models.DoneTicketTransfer, error)
+}
+
+type SaleRepository interface {
+	Create(sale *models.Sale) error
+	GetByID(id uint) (*models.Sale, error)
+	Update(sale *models.Sale) error
+	Delete(id uint) error
+	ListByEvent(eventID uint) ([]models.Sale, error)
 }

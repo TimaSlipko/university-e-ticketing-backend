@@ -1,3 +1,4 @@
+// internal/models/ticket.go
 package models
 
 type TicketType int
@@ -42,4 +43,20 @@ type PurchasedTicket struct {
 	// Relationships
 	User   User   `json:"user" gorm:"foreignKey:UserID"`
 	Ticket Ticket `json:"ticket" gorm:"foreignKey:TicketID"`
+}
+
+// GroupedTicket represents aggregated ticket data for display purposes
+type GroupedTicket struct {
+	Price           float64    `json:"price"`
+	Type            TicketType `json:"type"`
+	IsVip           bool       `json:"is_vip"`
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	Place           string     `json:"place"`
+	SaleID          uint       `json:"sale_id"`
+	EventID         uint       `json:"event_id"`
+	TotalAmount     int        `json:"total_amount"`
+	AvailableAmount int        `json:"available_amount"`
+	SoldAmount      int        `json:"sold_amount"`
+	HeldAmount      int        `json:"held_amount"`
 }
