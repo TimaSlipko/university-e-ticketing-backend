@@ -57,7 +57,8 @@ func main() {
 	purchasedTicketRepo := repositories.NewPurchasedTicketRepository(db.DB)
 	paymentRepo := repositories.NewPaymentRepository(db.DB)
 	transferRepo := repositories.NewTransferRepository(db.DB)
-	saleRepo := repositories.NewSaleRepository(db.DB) // Add this line
+	saleRepo := repositories.NewSaleRepository(db.DB)
+	paymentMethodRepo := repositories.NewPaymentMethodRepository(db.DB)
 
 	// Initialize services
 	authService := services.NewAuthService(userRepo, sellerRepo, adminRepo, jwtManager)
@@ -69,6 +70,7 @@ func main() {
 	ticketService := services.NewTicketService(ticketRepo, purchasedTicketRepo, eventRepo, saleRepo, paymentService) // Updated this line
 	transferService := services.NewTransferService(transferRepo, purchasedTicketRepo, userRepo)
 	saleService := services.NewSaleService(saleRepo, eventRepo)
+	paymentMethodService := services.NewPaymentMethodService(paymentMethodRepo)
 	pdfService := services.NewPDFService()
 
 	// Initialize handlers
@@ -80,6 +82,7 @@ func main() {
 	ticketHandler := handlers.NewTicketHandler(ticketService)
 	transferHandler := handlers.NewTransferHandler(transferService)
 	saleHandler := handlers.NewSaleHandler(saleService)
+	paymentMethodHandler := handlers.NewPaymentMethodHandler(paymentMethodService)
 	pdfHandler := handlers.NewPDFHandler(pdfService, purchasedTicketRepo, eventRepo)
 
 	gin.SetMode(gin.ReleaseMode)
@@ -94,6 +97,7 @@ func main() {
 		ticketHandler,
 		transferHandler,
 		saleHandler,
+		paymentMethodHandler,
 		pdfHandler,
 		jwtManager,
 	)
@@ -146,6 +150,7 @@ func setupRouter(
 	ticketHandler *handlers.TicketHandler,
 	transferHandler *handlers.TransferHandler,
 	saleHandler *handlers.SaleHandler,
+	paymentMethodHandler *handlers.PaymentMethodHandler,
 	pdfHandler *handlers.PDFHandler,
 	jwtManager *utils.JWTManager,
 ) *gin.Engine {
@@ -157,7 +162,7 @@ func setupRouter(
 	router.Use(middleware.CORSMiddleware())
 
 	// Rate limiting middleware
-	router.Use(middleware.RateLimitMiddleware(time.Minute, 200))
+	router.Use(middleware.RateLimitMiddleware(time.Minute, 500))
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -265,6 +270,17 @@ func setupRouter(
 				admin.GET("/stats", func(c *gin.Context) {
 					c.JSON(http.StatusOK, gin.H{"message": "Admin stats - not implemented yet"})
 				})
+			}
+
+			paymentMethods := protected.Group("/payment-methods")
+			admin.Use(middleware.RequireRole(models.UserTypeUser))
+			{
+				paymentMethods.POST("", paymentMethodHandler.CreatePaymentMethod)
+				paymentMethods.GET("", paymentMethodHandler.GetPaymentMethods)
+				paymentMethods.GET("/:id", paymentMethodHandler.GetPaymentMethod)
+				paymentMethods.PUT("/:id", paymentMethodHandler.UpdatePaymentMethod)
+				paymentMethods.DELETE("/:id", paymentMethodHandler.DeletePaymentMethod)
+				paymentMethods.POST("/:id/set-default", paymentMethodHandler.SetDefaultPaymentMethod)
 			}
 		}
 	}

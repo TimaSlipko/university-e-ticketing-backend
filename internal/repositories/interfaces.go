@@ -103,3 +103,13 @@ type SaleRepository interface {
 	Delete(id uint) error
 	ListByEvent(eventID uint) ([]models.Sale, error)
 }
+
+type PaymentMethodRepository interface {
+	Create(method *models.PaymentMethod) error
+	GetByID(id uint) (*models.PaymentMethod, error)
+	Update(method *models.PaymentMethod) error
+	Delete(id uint) error
+	ListByUser(userID uint) ([]models.PaymentMethod, error)
+	ClearDefaultForUser(userID uint) error
+	GetDefaultByUser(userID uint) (*models.PaymentMethod, error)
+}
