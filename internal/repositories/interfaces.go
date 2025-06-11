@@ -47,6 +47,8 @@ type EventRepository interface {
 	ListByStatusReverse(status models.EventStatus, limit, offset int) ([]models.Event, error)
 	ListBySeller(sellerID uint, limit, offset int) ([]models.Event, error)
 	CountByStatus(status models.EventStatus) (int64, error)
+	CountBySellerAndStatus(sellerID uint, status models.EventStatus) (int64, error)
+	CountEventsWithSoldTickets(sellerID uint) (int64, error)
 }
 
 type TicketRepository interface {
@@ -66,6 +68,7 @@ type TicketRepository interface {
 
 	// New method for locking available tickets during purchase
 	FindAndLockAvailableTickets(eventID uint, price float64, ticketType models.TicketType, isVip bool, title, place string, saleID uint, quantity int) ([]models.Ticket, error)
+	GetSellerTicketStats(sellerID uint) (*TicketStats, error)
 }
 
 type PurchasedTicketRepository interface {
@@ -84,6 +87,8 @@ type PaymentRepository interface {
 	ListByUserAndType(userID uint, userType models.UserType, limit, offset int) ([]models.Payment, error) // Add this
 	GetTotalRevenue() (float64, error)
 	CountTransactions() (int64, error)
+	GetTotalRevenueByUser(userID uint, userType models.UserType) (float64, error)
+	GetPendingRevenueByUser(userID uint, userType models.UserType) (float64, error)
 }
 
 type TransferRepository interface {

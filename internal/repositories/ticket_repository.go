@@ -153,3 +153,27 @@ func (r *ticketRepository) ListAvailableGroupedByEvent(eventID uint) ([]models.G
 
 	return results, err
 }
+
+func (r *ticketRepository) GetSellerTicketStats(sellerID uint) (*TicketStats, error) {
+	var stats TicketStats
+
+	// Get total tickets for seller's events
+	err := r.db.Model(&models.Ticket{}).
+		Joins("JOIN events ON tickets.event_id = events.id").
+		Where("events.seller_id = ?", sellerID).
+		Count(&stats.TotalTickets).Error // Fix: Remove the slice syntax
+	if err != nil {
+		return nil, err
+	}
+
+	// Get sold tickets for seller's events
+	err = r.db.Model(&models.Ticket{}).
+		Joins("JOIN events ON tickets.event_id = events.id").
+		Where("events.seller_id = ? AND tickets.is_sold = true", sellerID).
+		Count(&stats.SoldTickets).Error // Fix: Remove the slice syntax
+	if err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}

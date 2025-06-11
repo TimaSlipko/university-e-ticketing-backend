@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"eticketing/internal/middleware"
+	"eticketing/internal/models"
 	"eticketing/internal/services"
 	"eticketing/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -83,13 +84,18 @@ func (h *SellerHandler) GetStats(c *gin.Context) {
 		return
 	}
 
+	if currentUser.UserType != models.UserTypeSeller {
+		utils.ForbiddenResponse(c, "Only sellers can access stats")
+		return
+	}
+
 	stats, err := h.sellerService.GetSellerStats(currentUser.UserID)
 	if err != nil {
 		utils.InternalErrorResponse(c, err.Error())
 		return
 	}
 
-	utils.SuccessResponse(c, "Seller statistics retrieved successfully", stats)
+	utils.SuccessResponse(c, "Stats retrieved successfully", stats)
 }
 
 func (h *SellerHandler) DeleteAccount(c *gin.Context) {

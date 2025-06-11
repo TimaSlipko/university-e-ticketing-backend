@@ -11,10 +11,11 @@ import (
 )
 
 type SellerService struct {
-	sellerRepo repositories.SellerRepository
-	eventRepo  repositories.EventRepository
+	sellerRepo  repositories.SellerRepository
+	eventRepo   repositories.EventRepository
+	paymentRepo repositories.PaymentRepository // Add payment repo
+	ticketRepo  repositories.TicketRepository  // Add ticket repo
 }
-
 type SellerInfo struct {
 	ID       uint            `json:"id"`
 	Username string          `json:"username"`
@@ -32,13 +33,31 @@ type SellerStats struct {
 	EventsSold     int64   `json:"events_sold"`
 }
 
-func NewSellerService(sellerRepo repositories.SellerRepository, eventRepo repositories.EventRepository) *SellerService {
-	return &SellerService{
-		sellerRepo: sellerRepo,
-		eventRepo:  eventRepo,
-	}
+type SellerStatsResponse struct {
+	TotalEvents    int     `json:"total_events"`
+	ApprovedEvents int     `json:"approved_events"`
+	PendingEvents  int     `json:"pending_events"`
+	RejectedEvents int     `json:"rejected_events"`
+	TotalRevenue   float64 `json:"total_revenue"`
+	EventsSold     int     `json:"events_sold"`     // Events with sold tickets
+	TotalTickets   int     `json:"total_tickets"`   // Total tickets created
+	SoldTickets    int     `json:"sold_tickets"`    // Total tickets sold
+	PendingRevenue float64 `json:"pending_revenue"` // Revenue from pending events
 }
 
+func NewSellerService(
+	sellerRepo repositories.SellerRepository,
+	eventRepo repositories.EventRepository,
+	paymentRepo repositories.PaymentRepository,
+	ticketRepo repositories.TicketRepository,
+) *SellerService {
+	return &SellerService{
+		sellerRepo:  sellerRepo,
+		eventRepo:   eventRepo,
+		paymentRepo: paymentRepo,
+		ticketRepo:  ticketRepo,
+	}
+}
 func (s *SellerService) GetProfile(sellerID uint) (*SellerInfo, error) {
 	seller, err := s.sellerRepo.GetByID(sellerID)
 	if err != nil {
@@ -129,35 +148,62 @@ func (s *SellerService) ChangePassword(sellerID uint, req *ChangePasswordRequest
 	return nil
 }
 
-func (s *SellerService) GetSellerStats(sellerID uint) (*SellerStats, error) {
-	// Get total events by seller
-	allEvents, err := s.eventRepo.ListBySeller(sellerID, 1000, 0)
+func (s *SellerService) GetSellerStats(sellerID uint) (*SellerStatsResponse, error) {
+	// Get event counts by status
+	totalEvents, err := s.eventRepo.CountBySellerAndStatus(sellerID, 0) // 0 = all statuses
 	if err != nil {
-		return nil, errors.New("failed to get seller events")
+		return nil, errors.New("failed to get total events count")
 	}
 
-	totalEvents := int64(len(allEvents))
-
-	// Count by status
-	var approvedEvents, pendingEvents int64
-	for _, event := range allEvents {
-		switch event.Status {
-		case models.EventStatusApproved:
-			approvedEvents++
-		case models.EventStatusPending:
-			pendingEvents++
-		}
+	approvedEvents, err := s.eventRepo.CountBySellerAndStatus(sellerID, models.EventStatusApproved)
+	if err != nil {
+		return nil, errors.New("failed to get approved events count")
 	}
 
-	// TODO: Calculate actual revenue and events sold
-	// This would require joining with ticket sales data
+	pendingEvents, err := s.eventRepo.CountBySellerAndStatus(sellerID, models.EventStatusPending)
+	if err != nil {
+		return nil, errors.New("failed to get pending events count")
+	}
 
-	return &SellerStats{
-		TotalEvents:    totalEvents,
-		ApprovedEvents: approvedEvents,
-		PendingEvents:  pendingEvents,
-		TotalRevenue:   0.0, // TODO: Calculate from actual sales
-		EventsSold:     0,   // TODO: Calculate events with sold tickets
+	rejectedEvents, err := s.eventRepo.CountBySellerAndStatus(sellerID, models.EventStatusRejected)
+	if err != nil {
+		return nil, errors.New("failed to get rejected events count")
+	}
+
+	// Get revenue from payments
+	totalRevenue, err := s.paymentRepo.GetTotalRevenueByUser(sellerID, models.UserTypeSeller)
+	if err != nil {
+		return nil, errors.New("failed to get total revenue")
+	}
+
+	// Get ticket statistics
+	ticketStats, err := s.ticketRepo.GetSellerTicketStats(sellerID)
+	if err != nil {
+		return nil, errors.New("failed to get ticket statistics")
+	}
+
+	// Count events with sold tickets
+	eventsSold, err := s.eventRepo.CountEventsWithSoldTickets(sellerID)
+	if err != nil {
+		return nil, errors.New("failed to get events sold count")
+	}
+
+	// Get pending revenue (from pending events)
+	pendingRevenue, err := s.paymentRepo.GetPendingRevenueByUser(sellerID, models.UserTypeSeller)
+	if err != nil {
+		pendingRevenue = 0 // Don't fail if this is not available
+	}
+
+	return &SellerStatsResponse{
+		TotalEvents:    int(totalEvents),
+		ApprovedEvents: int(approvedEvents),
+		PendingEvents:  int(pendingEvents),
+		RejectedEvents: int(rejectedEvents),
+		TotalRevenue:   totalRevenue,
+		EventsSold:     int(eventsSold),
+		TotalTickets:   int(ticketStats.TotalTickets),
+		SoldTickets:    int(ticketStats.SoldTickets),
+		PendingRevenue: pendingRevenue,
 	}, nil
 }
 

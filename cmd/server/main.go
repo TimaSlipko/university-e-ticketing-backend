@@ -63,7 +63,7 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(userRepo, sellerRepo, adminRepo, jwtManager)
 	userService := services.NewUserService(userRepo)
-	sellerService := services.NewSellerService(sellerRepo, eventRepo)
+	sellerService := services.NewSellerService(sellerRepo, eventRepo, paymentRepo, ticketRepo)
 	adminService := services.NewAdminService(adminRepo, userRepo, sellerRepo, eventRepo, paymentRepo)
 	paymentService := services.NewPaymentService(paymentRepo, eventRepo, sellerRepo, cfg.Payment.IsMocked)
 	eventService := services.NewEventService(eventRepo, ticketRepo)
@@ -269,6 +269,8 @@ func setupRouter(
 				seller.GET("/events/:event_id/grouped-tickets", ticketHandler.GetGroupedEventTickets)
 
 				seller.GET("/payments", paymentHandler.GetSellerPayments)
+
+				seller.GET("/stats", sellerHandler.GetStats)
 			}
 
 			// Admin routes
