@@ -11,7 +11,7 @@ type User struct {
 	// Relationships
 	PurchasedTickets []PurchasedTicket `json:"purchased_tickets,omitempty" gorm:"foreignKey:UserID"`
 	PaymentMethods   []PaymentMethod   `json:"payment_methods,omitempty" gorm:"foreignKey:UserID"`
-	Payments         []Payment         `json:"payments,omitempty" gorm:"foreignKey:UserID"`
+	//Payments         []Payment         `json:"payments,omitempty" gorm:"foreignKey:UserID"`
 }
 
 type Seller struct {

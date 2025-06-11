@@ -144,9 +144,11 @@ func (s *TicketService) PurchaseTicketFromGroup(req *PurchaseTicketFromGroupRequ
 	// Process payment
 	paymentReq := &PaymentRequest{
 		UserID:        req.UserID,
+		UserType:      models.UserTypeUser,
 		Amount:        totalAmount,
 		PaymentMethod: req.PaymentMethod,
 		Description:   "Ticket purchase for " + req.Title + " - " + event.Title,
+		EventID:       sale.EventID,
 	}
 
 	paymentResponse, err := s.paymentService.ProcessPayment(paymentReq)
@@ -398,6 +400,7 @@ func (s *TicketService) PurchaseTicket(req *PurchaseTicketRequest) (*PurchaseTic
 		Amount:        totalAmount,
 		PaymentMethod: req.PaymentMethod,
 		Description:   "Ticket purchase for " + ticket.Title,
+		EventID:       sale.EventID,
 	}
 
 	paymentResponse, err := s.paymentService.ProcessPayment(paymentReq)

@@ -65,7 +65,7 @@ func main() {
 	userService := services.NewUserService(userRepo)
 	sellerService := services.NewSellerService(sellerRepo, eventRepo)
 	adminService := services.NewAdminService(adminRepo, userRepo, sellerRepo, eventRepo, paymentRepo)
-	paymentService := services.NewPaymentService(paymentRepo, cfg.Payment.IsMocked)
+	paymentService := services.NewPaymentService(paymentRepo, eventRepo, sellerRepo, cfg.Payment.IsMocked)
 	eventService := services.NewEventService(eventRepo, ticketRepo)
 	ticketService := services.NewTicketService(ticketRepo, purchasedTicketRepo, eventRepo, saleRepo, paymentService) // Updated this line
 	transferService := services.NewTransferService(transferRepo, purchasedTicketRepo, userRepo)
@@ -83,6 +83,7 @@ func main() {
 	transferHandler := handlers.NewTransferHandler(transferService)
 	saleHandler := handlers.NewSaleHandler(saleService)
 	paymentMethodHandler := handlers.NewPaymentMethodHandler(paymentMethodService)
+	paymentHandler := handlers.NewPaymentHandler(paymentService)
 	pdfHandler := handlers.NewPDFHandler(pdfService, purchasedTicketRepo, eventRepo)
 
 	gin.SetMode(gin.ReleaseMode)
@@ -98,6 +99,7 @@ func main() {
 		transferHandler,
 		saleHandler,
 		paymentMethodHandler,
+		paymentHandler,
 		pdfHandler,
 		jwtManager,
 	)
@@ -151,6 +153,7 @@ func setupRouter(
 	transferHandler *handlers.TransferHandler,
 	saleHandler *handlers.SaleHandler,
 	paymentMethodHandler *handlers.PaymentMethodHandler,
+	paymentHandler *handlers.PaymentHandler,
 	pdfHandler *handlers.PDFHandler,
 	jwtManager *utils.JWTManager,
 ) *gin.Engine {
@@ -235,6 +238,12 @@ func setupRouter(
 				transfers.GET("/history", transferHandler.GetTransferHistory)
 			}
 
+			payments := protected.Group("/payments")
+			{
+				payments.GET("/my", paymentHandler.GetUserPayments)
+				payments.GET("/:id", paymentHandler.GetPaymentStatus)
+			}
+
 			// Seller routes
 			seller := protected.Group("/seller")
 			seller.Use(middleware.RequireRole(models.UserTypeSeller))
@@ -258,6 +267,8 @@ func setupRouter(
 				seller.PUT("/events/:event_id/tickets", ticketHandler.UpdateTickets)
 				seller.DELETE("/events/:event_id/tickets", ticketHandler.DeleteTickets)
 				seller.GET("/events/:event_id/grouped-tickets", ticketHandler.GetGroupedEventTickets)
+
+				seller.GET("/payments", paymentHandler.GetSellerPayments)
 			}
 
 			// Admin routes

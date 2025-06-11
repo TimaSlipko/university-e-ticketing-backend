@@ -81,6 +81,7 @@ type PaymentRepository interface {
 	GetByID(id uint) (*models.Payment, error)
 	Update(payment *models.Payment) error
 	ListByUser(userID uint, limit, offset int) ([]models.Payment, error)
+	ListByUserAndType(userID uint, userType models.UserType, limit, offset int) ([]models.Payment, error) // Add this
 	GetTotalRevenue() (float64, error)
 	CountTransactions() (int64, error)
 }

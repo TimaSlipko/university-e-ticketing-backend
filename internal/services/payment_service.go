@@ -13,14 +13,18 @@ import (
 
 type PaymentService struct {
 	paymentRepo repositories.PaymentRepository
+	eventRepo   repositories.EventRepository
+	sellerRepo  repositories.SellerRepository
 	mockMode    bool
 }
 
 type PaymentRequest struct {
 	UserID        uint               `json:"user_id"`
+	UserType      models.UserType    `json:"user_type"` // Add user type
 	Amount        float64            `json:"amount"`
 	PaymentMethod models.PaymentType `json:"payment_method"`
 	Description   string             `json:"description"`
+	EventID       uint               `json:"event_id,omitempty"`
 }
 
 type PaymentResponse struct {
@@ -31,9 +35,23 @@ type PaymentResponse struct {
 	Message       string               `json:"message"`
 }
 
-func NewPaymentService(paymentRepo repositories.PaymentRepository, mockMode bool) *PaymentService {
+type PaymentInfo struct {
+	ID          uint                 `json:"id"`
+	UserID      uint                 `json:"user_id"`
+	Date        int64                `json:"date"`
+	Type        models.PaymentType   `json:"type"`
+	Amount      float64              `json:"amount"`
+	Status      models.PaymentStatus `json:"status"`
+	Description string               `json:"description"`
+	EventTitle  string               `json:"event_title,omitempty"`
+	PaymentType string               `json:"payment_type"` // "incoming" or "outgoing"
+}
+
+func NewPaymentService(paymentRepo repositories.PaymentRepository, eventRepo repositories.EventRepository, sellerRepo repositories.SellerRepository, mockMode bool) *PaymentService {
 	return &PaymentService{
 		paymentRepo: paymentRepo,
+		eventRepo:   eventRepo,
+		sellerRepo:  sellerRepo,
 		mockMode:    mockMode,
 	}
 }
@@ -43,26 +61,130 @@ func (s *PaymentService) ProcessPayment(req *PaymentRequest) (*PaymentResponse, 
 		return nil, errors.New("payment amount must be greater than 0")
 	}
 
-	// Create payment record
-	payment := &models.Payment{
-		UserID: req.UserID,
-		Date:   time.Now().Unix(),
-		Type:   req.PaymentMethod,
-		Amount: req.Amount,
-		Status: models.PaymentStatusPending,
+	// Create customer payment record
+	customerPayment := &models.Payment{
+		UserID:      req.UserID,
+		UserType:    req.UserType,
+		Date:        time.Now().Unix(),
+		Type:        req.PaymentMethod,
+		Amount:      req.Amount,
+		Status:      models.PaymentStatusPending,
+		Description: req.Description,
+		EventID:     req.EventID,
 	}
 
-	if err := s.paymentRepo.Create(payment); err != nil {
+	if err := s.paymentRepo.Create(customerPayment); err != nil {
 		return nil, errors.New("failed to create payment record")
 	}
 
 	// Process payment (mocked)
 	if s.mockMode {
-		return s.processMockPayment(payment)
+		response, err := s.processMockPayment(customerPayment)
+		if err != nil {
+			return nil, err
+		}
+
+		// If payment successful and event_id provided, create seller payment
+		if response.Status == models.PaymentStatusCompleted && req.EventID > 0 {
+			err = s.createSellerPayment(req.EventID, req.Amount, req.Description)
+			if err != nil {
+				fmt.Printf("Failed to create seller payment: %v\n", err)
+			}
+		}
+
+		return response, nil
 	}
 
-	// In a real implementation, this would integrate with actual payment processors
 	return nil, errors.New("real payment processing not implemented")
+}
+
+func (s *PaymentService) createSellerPayment(eventID uint, amount float64, description string) error {
+	// Get event to find seller
+	event, err := s.eventRepo.GetByID(eventID)
+	if err != nil {
+		return err
+	}
+
+	// Calculate seller fee (e.g., 95% to seller, 5% platform fee)
+	sellerAmount := amount * 0.95
+
+	// Create seller payment record
+	sellerPayment := &models.Payment{
+		UserID:      event.SellerID,
+		UserType:    models.UserTypeSeller, // Set seller user type
+		Date:        time.Now().Unix(),
+		Type:        models.PaymentTypeCard,
+		Amount:      sellerAmount,
+		Status:      models.PaymentStatusCompleted,
+		Description: fmt.Sprintf("Revenue from: %s", description),
+		EventID:     eventID,
+	}
+
+	return s.paymentRepo.Create(sellerPayment)
+}
+
+func (s *PaymentService) GetUserPayments(userID uint, userType models.UserType, limit, offset int) ([]PaymentInfo, error) {
+	payments, err := s.paymentRepo.ListByUserAndType(userID, userType, limit, offset)
+	if err != nil {
+		return nil, errors.New("failed to retrieve payments")
+	}
+
+	var paymentInfos []PaymentInfo
+	for _, payment := range payments {
+		paymentInfo := PaymentInfo{
+			ID:          payment.ID,
+			UserID:      payment.UserID,
+			Date:        payment.Date,
+			Type:        payment.Type,
+			Amount:      payment.Amount,
+			Status:      payment.Status,
+			Description: payment.Description,
+			PaymentType: s.getPaymentDirectionForUser(payment.UserType, userType),
+		}
+
+		// Add event title if available
+		if payment.EventID > 0 {
+			if event, err := s.eventRepo.GetByID(payment.EventID); err == nil {
+				paymentInfo.EventTitle = event.Title
+			}
+		}
+
+		paymentInfos = append(paymentInfos, paymentInfo)
+	}
+
+	return paymentInfos, nil
+}
+
+func (s *PaymentService) GetSellerPayments(sellerID uint, limit, offset int) ([]PaymentInfo, error) {
+	payments, err := s.paymentRepo.ListByUser(sellerID, limit, offset)
+	if err != nil {
+		return nil, errors.New("failed to retrieve seller payments")
+	}
+
+	var paymentInfos []PaymentInfo
+	for _, payment := range payments {
+		paymentInfo := PaymentInfo{
+			ID:          payment.ID,
+			UserID:      payment.UserID,
+			Date:        payment.Date,
+			Type:        payment.Type,
+			Amount:      payment.Amount,
+			Status:      payment.Status,
+			Description: payment.Description,
+			PaymentType: "incoming", // Seller payments are incoming
+		}
+
+		// Add event title if available
+		if payment.EventID > 0 {
+			if event, err := s.eventRepo.GetByID(payment.EventID); err == nil {
+				paymentInfo.EventTitle = event.Title
+			}
+		}
+
+		paymentInfos = append(paymentInfos, paymentInfo)
+	}
+
+	return paymentInfos, nil
 }
 
 func (s *PaymentService) processMockPayment(payment *models.Payment) (*PaymentResponse, error) {
@@ -134,4 +256,11 @@ func (s *PaymentService) RefundPayment(paymentID uint) error {
 	}
 
 	return nil
+}
+
+func (s *PaymentService) getPaymentDirectionForUser(paymentUserType, requestUserType models.UserType) string {
+	if paymentUserType == models.UserTypeSeller && requestUserType == models.UserTypeSeller {
+		return "incoming" // Seller viewing their revenue
+	}
+	return "outgoing" // User viewing their purchases
 }

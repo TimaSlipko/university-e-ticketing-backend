@@ -31,9 +31,33 @@ func (r *paymentRepository) Update(payment *models.Payment) error {
 	return r.db.Save(payment).Error
 }
 
+func (r *paymentRepository) ListByUserAndType(userID uint, userType models.UserType, limit, offset int) ([]models.Payment, error) {
+	var payments []models.Payment
+	err := r.db.Where("user_id = ? AND user_type = ?", userID, userType).
+		Order("date DESC").
+		Limit(limit).Offset(offset).
+		Preload("Event").
+		Find(&payments).Error
+	return payments, err
+}
+
 func (r *paymentRepository) ListByUser(userID uint, limit, offset int) ([]models.Payment, error) {
 	var payments []models.Payment
-	err := r.db.Where("user_id = ?", userID).Limit(limit).Offset(offset).Find(&payments).Error
+	err := r.db.Where("user_id = ?", userID).
+		Order("date DESC").
+		Limit(limit).Offset(offset).
+		Preload("Event").
+		Find(&payments).Error
+	return payments, err
+}
+
+func (r *paymentRepository) ListByUserType(userID uint, userType models.UserType, limit, offset int) ([]models.Payment, error) {
+	var payments []models.Payment
+	err := r.db.Where("user_id = ? AND user_type = ?", userID, userType).
+		Order("date DESC").
+		Limit(limit).Offset(offset).
+		Preload("Event").
+		Find(&payments).Error
 	return payments, err
 }
 
