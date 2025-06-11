@@ -56,39 +56,7 @@ go mod tidy
 
 4. **Run the application**
 ```bash
-make run
-```
-
-## 🔧 Development
-
-### Available Commands
-
-```bash
-# Development
-make run              # Start the application
-make dev              # Complete development setup
-make restart          # Restart the application
-
-# Database
-make migrate          # Run migrations
-make seed             # Seed with sample data
-make dev-db           # Setup development database
-
-# Building
-make build            # Build binary
-make build-linux      # Build for Linux
-
-# Testing & Quality
-make test             # Run tests
-make test-coverage    # Run tests with coverage
-make lint             # Run linter
-make fmt              # Format code
-make check            # Run all checks
-
-# Docker
-make docker-build     # Build Docker image
-make docker-run       # Run with Docker
-make docker-stop      # Stop Docker containers
+go run main.go
 ```
 
 ### Environment Variables
@@ -109,23 +77,79 @@ POST /api/v1/auth/logout      # User logout
 ### Event Endpoints
 
 ```http
-GET    /api/v1/events              # List approved events
-GET    /api/v1/events/:id          # Get event details
-GET    /api/v1/events/:id/tickets  # Get event tickets
+# Public endpoints
+GET    /api/v1/events                           # List approved events
+GET    /api/v1/events/:event_id                 # Get event details
+GET    /api/v1/events/:event_id/tickets         # Get event tickets (legacy)
+GET    /api/v1/events/:event_id/grouped-tickets # Get grouped tickets
+GET    /api/v1/events/:event_id/sales           # Get event sales
 
 # Seller only
-POST   /api/v1/seller/events       # Create event
-GET    /api/v1/seller/events       # Get seller's events
-PUT    /api/v1/seller/events/:id   # Update event
-DELETE /api/v1/seller/events/:id   # Delete event
+POST   /api/v1/seller/events                    # Create event
+GET    /api/v1/seller/events                    # Get seller's events
+PUT    /api/v1/seller/events/:event_id          # Update event
+DELETE /api/v1/seller/events/:event_id          # Delete event
+GET    /api/v1/seller/events/:event_id/grouped-tickets # Get seller's grouped tickets
 ```
 
 ### Ticket Endpoints
 
 ```http
-POST /api/v1/tickets/purchase    # Purchase tickets
-GET  /api/v1/tickets/my          # Get user's tickets
-POST /api/v1/tickets/transfer    # Transfer ticket
+# Customer endpoints
+POST /api/v1/tickets/purchase             # Purchase individual ticket (legacy)
+POST /api/v1/tickets/purchase-group       # Purchase tickets from group
+GET  /api/v1/tickets/my                   # Get user's purchased tickets
+POST /api/v1/tickets/transfer             # Initiate ticket transfer
+GET  /api/v1/tickets/:ticket_id/download  # Download ticket PDF
+GET  /api/v1/tickets/:ticket_id/view      # View ticket PDF
+
+# Seller only
+POST   /api/v1/seller/tickets                    # Create tickets
+PUT    /api/v1/seller/events/:event_id/tickets   # Update tickets
+DELETE /api/v1/seller/events/:event_id/tickets   # Delete tickets
+```
+
+### Transfer Endpoints
+
+```http
+GET  /api/v1/transfers/active              # Get active transfers
+POST /api/v1/transfers/:transfer_id/accept # Accept transfer
+POST /api/v1/transfers/:transfer_id/reject # Reject transfer
+GET  /api/v1/transfers/history             # Get transfer history
+```
+
+### Payment Endpoints
+
+```http
+# User payments
+GET /api/v1/payments/my        # Get user's payment history
+GET /api/v1/payments/:id       # Get payment status
+
+# Seller payments
+GET /api/v1/seller/payments    # Get seller's revenue history
+```
+
+### Payment Methods Endpoints
+
+```http
+POST   /api/v1/payment-methods              # Create payment method
+GET    /api/v1/payment-methods              # Get user's payment methods
+GET    /api/v1/payment-methods/:id          # Get specific payment method
+PUT    /api/v1/payment-methods/:id          # Update payment method
+DELETE /api/v1/payment-methods/:id          # Delete payment method
+POST   /api/v1/payment-methods/:id/set-default # Set default payment method
+```
+
+### Sales Endpoints
+
+```http
+# Public
+GET /api/v1/sales/:sale_id     # Get sale details
+
+# Seller only
+POST   /api/v1/seller/sales           # Create sale
+PUT    /api/v1/seller/sales/:sale_id  # Update sale
+DELETE /api/v1/seller/sales/:sale_id  # Delete sale
 ```
 
 ### User Endpoints
@@ -137,13 +161,29 @@ PUT    /api/v1/users/password    # Change password
 DELETE /api/v1/users/profile     # Delete account
 ```
 
+### Seller Endpoints
+
+```http
+GET    /api/v1/seller/profile    # Get seller profile
+PUT    /api/v1/seller/profile    # Update seller profile
+PUT    /api/v1/seller/password   # Change seller password
+DELETE /api/v1/seller/profile    # Delete seller account
+GET    /api/v1/seller/stats      # Get seller statistics
+```
+
 ### Admin Endpoints
 
 ```http
-GET  /api/v1/admin/events/pending      # Get pending events
-POST /api/v1/admin/events/:id/approve  # Approve event
-POST /api/v1/admin/events/:id/reject   # Reject event
-GET  /api/v1/admin/stats               # Get system statistics
+GET  /api/v1/admin/events/pending        # Get pending events
+POST /api/v1/admin/events/:event_id/approve  # Approve event
+POST /api/v1/admin/events/:event_id/reject   # Reject event
+GET  /api/v1/admin/stats                 # Get system statistics (not implemented)
+```
+
+### Health Check
+
+```http
+GET /health    # System health check
 ```
 
 ## 🔐 Authentication
@@ -154,11 +194,11 @@ The API uses JWT (JSON Web Tokens) for authentication. Include the token in the 
 Authorization: Bearer <your_jwt_token>
 ```
 
-### User Roles
+## 👥 User Roles
 
-- **User**: Can view events, purchase tickets, manage profile
-- **Seller**: Can create and manage events, view sales statistics
-- **Admin**: Can approve/reject events, manage users, view system stats
+- **User (1)**: Can purchase tickets, transfer tickets, view payment history
+- **Seller (2)**: Can create events, manage tickets and sales, view revenue
+- **Admin (3)**: Can approve/reject events, view system statistics
 
 ## 💳 Payment System
 
@@ -189,28 +229,6 @@ Key relationships:
 - Events can have multiple Tickets through Sales
 - Users can purchase Tickets (PurchasedTickets)
 - Tickets can be transferred between users
-
-## 🧪 Testing
-
-### Running Tests
-
-```bash
-# Run all tests
-make test
-
-# Run tests with coverage
-make test-coverage
-
-# Run specific test package
-go test <path>
-```
-
-### Test Coverage
-
-The project aims for high test coverage across all layers:
-- Unit tests for services and utilities
-- Integration tests for repositories
-- HTTP tests for handlers
 
 ## 📈 Performance Considerations
 
@@ -253,10 +271,9 @@ The project aims for high test coverage across all layers:
 
 ### Phase 2 Features
 - [ ] Email notifications for events
-- [ ] Ticket QR code generation
 - [ ] Event search and filtering
 - [ ] User reviews and ratings
-- [ ] Real payment integration (Stripe)
+- [ ] Real payment integration
 - [ ] Event categories and tags
 - [ ] Bulk ticket operations
 
@@ -282,7 +299,6 @@ The project aims for high test coverage across all layers:
 - Follow Go conventions and best practices
 - Write tests for new features
 - Update documentation for API changes
-- Run `make check` before committing
 - Use conventional commit messages
 
 ## 📊 Project Status
