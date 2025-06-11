@@ -1,4 +1,3 @@
-// internal/handlers/auth_handler.go
 package handlers
 
 import (
@@ -67,7 +66,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// In a real implementation, you might want to blacklist the token
+	// In a real implementation, we might want to blacklist the token
 	// For now, we'll just return a success response
 	utils.SuccessResponse(c, "Logout successful", nil)
 }

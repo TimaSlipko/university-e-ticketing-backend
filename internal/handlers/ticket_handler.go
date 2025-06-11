@@ -1,4 +1,3 @@
-// internal/handlers/ticket_handler.go
 package handlers
 
 import (
@@ -18,8 +17,6 @@ type TicketHandler struct {
 func NewTicketHandler(ticketService *services.TicketService) *TicketHandler {
 	return &TicketHandler{ticketService: ticketService}
 }
-
-// Seller endpoints - Ticket management
 
 func (h *TicketHandler) CreateTickets(c *gin.Context) {
 	currentUser, err := middleware.GetCurrentUser(c)

@@ -26,7 +26,6 @@ type Pagination struct {
 	TotalPages int   `json:"total_pages"`
 }
 
-// Success responses
 func SuccessResponse(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
@@ -52,7 +51,6 @@ func PaginatedSuccessResponse(c *gin.Context, message string, data interface{}, 
 	})
 }
 
-// Error responses
 func ErrorResponse(c *gin.Context, statusCode int, message string) {
 	c.JSON(statusCode, APIResponse{
 		Success: false,
@@ -85,7 +83,6 @@ func InternalErrorResponse(c *gin.Context, message string) {
 	ErrorResponse(c, http.StatusInternalServerError, message)
 }
 
-// Validation error response
 func ValidationErrorResponse(c *gin.Context, errors map[string]string) {
 	c.JSON(http.StatusBadRequest, gin.H{
 		"success": false,

@@ -1,4 +1,3 @@
-// internal/handlers/admin_handler.go
 package handlers
 
 import (

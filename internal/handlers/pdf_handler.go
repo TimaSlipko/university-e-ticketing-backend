@@ -1,4 +1,3 @@
-// internal/handlers/pdf_handler.go
 package handlers
 
 import (

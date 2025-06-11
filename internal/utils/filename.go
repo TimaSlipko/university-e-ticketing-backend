@@ -1,4 +1,3 @@
-// internal/utils/filename.go
 package utils
 
 import (

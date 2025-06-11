@@ -1,4 +1,3 @@
-// internal/handlers/payment_method_handler.go
 package handlers
 
 import (

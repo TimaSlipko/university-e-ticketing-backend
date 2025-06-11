@@ -1,4 +1,3 @@
-// internal/handlers/event_handler.go
 package handlers
 
 import (

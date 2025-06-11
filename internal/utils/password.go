@@ -5,7 +5,6 @@ import (
 )
 
 const (
-	// DefaultCost is the default cost for bcrypt hashing
 	DefaultCost = bcrypt.DefaultCost
 )
 

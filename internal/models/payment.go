@@ -20,8 +20,8 @@ const (
 type Payment struct {
 	ID          uint          `json:"id" gorm:"primaryKey"`
 	UserID      uint          `json:"user_id" gorm:"not null"`
-	UserType    UserType      `json:"user_type" gorm:"not null"` // Add user type field
-	Date        int64         `json:"date" gorm:"not null"`      // Unix timestamp
+	UserType    UserType      `json:"user_type" gorm:"not null"`
+	Date        int64         `json:"date" gorm:"not null"` // Unix timestamp
 	Type        PaymentType   `json:"type" gorm:"not null"`
 	Amount      float64       `json:"amount" gorm:"not null"`
 	Status      PaymentStatus `json:"status" gorm:"default:1"`
