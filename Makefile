@@ -154,6 +154,7 @@ help:
 dev-setup: deps install-security-tools
 	@echo "$(GREEN)✓ Development environment setup complete$(NC)"
 
+# CI pipeline
 .PHONY: ci
 ci: clean all security-summary
 	@echo "$(GREEN)✓ CI pipeline completed$(NC)"
