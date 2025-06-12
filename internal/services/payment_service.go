@@ -3,8 +3,8 @@ package services
 
 import (
 	"errors"
+	"eticketing/internal/utils"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"eticketing/internal/models"
@@ -192,8 +192,8 @@ func (s *PaymentService) processMockPayment(payment *models.Payment) (*PaymentRe
 	time.Sleep(time.Millisecond * 500)
 
 	// Randomly succeed or fail (90% success rate for demo)
-	rand.Seed(time.Now().UnixNano())
-	success := rand.Float64() < 0.9
+	randomNum, _ := utils.CryptoFloat64()
+	success := randomNum < 0.9
 
 	if success {
 		payment.Status = models.PaymentStatusCompleted
