@@ -318,4 +318,230 @@ Key relationships:
 
 ---
 
+# Security Scanning & Code Quality
+
+This project includes comprehensive security scanning using **Gosec** for Go-specific vulnerabilities and **SonarQube** for code quality analysis. All security findings are integrated into a single SonarQube dashboard for easy monitoring.
+
+## 🚀 Quick Start
+
+```bash
+# Run complete analysis (tests + security + quality)
+make all
+
+# Quick security check during development
+make quick-security
+
+# View security summary
+make security-summary
+```
+
+## 🛠️ Setup
+
+### Prerequisites
+
+- **Go 1.19+**
+- **SonarQube server** (local or remote)
+- **Docker** (optional, for SonarQube scanner)
+
+### Environment Variables
+
+```bash
+# Required for SonarQube integration
+export SONAR_HOST_URL="http://localhost:9000"
+export SONAR_TOKEN="your-sonarqube-token"
+
+# Optional: Custom project settings
+export SONAR_PROJECT_KEY="my-go-project"
+export SONAR_PROJECT_NAME="My Go Project"
+```
+
+### Initial Setup
+
+```bash
+# Install all dependencies and security tools
+make dev-setup
+```
+
+## 📊 Available Commands
+
+### Development Workflow
+
+| Command | Description |
+|---------|-------------|
+| `make all` | Complete analysis pipeline |
+| `make dev-setup` | Initial development environment setup |
+| `make quick-security` | Fast security check (gosec only) |
+| `make test` | Run tests with coverage |
+| `make clean` | Clean reports and artifacts |
+
+### Security Scanning
+
+| Command | Description |
+|---------|-------------|
+| `make gosec-scan` | Run gosec security analysis |
+| `make security-scan` | Comprehensive security scan (gosec + staticcheck + govulncheck) |
+| `make security-summary` | Display security findings summary |
+
+### Code Quality
+
+| Command | Description                        |
+|---------|------------------------------------|
+| `make sonar-scan` | Run SonarQube analysis with Docker |
+| `make coverage` | Open coverage report in browser    |
+
+## 🔍 What Gets Scanned
+
+### Security Vulnerabilities (Gosec)
+
+- **Hardcoded credentials** (passwords, API keys, tokens)
+- **SQL injection** vulnerabilities
+- **Command injection** risks
+- **Weak cryptography** usage
+- **Unsafe file operations**
+- **Memory safety** issues
+- **30+ additional security rules**
+
+### Code Quality (SonarQube)
+
+- **Code smells** and maintainability issues
+- **Bugs** and reliability problems
+- **Test coverage** analysis
+- **Complexity** metrics
+- **Duplicated code** detection
+
+### Dependency Vulnerabilities
+
+- **Known CVEs** in dependencies (govulncheck)
+- **Outdated packages** with security fixes
+- **License compliance** issues
+
+## 📈 Viewing Results
+
+### SonarQube Dashboard
+
+After running `make all`, visit your SonarQube server to see:
+
+1. **Security** tab - All gosec findings and vulnerabilities
+2. **Issues** tab - Code quality and maintainability issues
+3. **Coverage** tab - Test coverage metrics and line-by-line analysis
+4. **Activity** tab - Historical trends and quality gate status
+
+### Local Reports
+
+Generated reports are available in the `reports/` directory:
+
+```
+reports/
+├── gosec-report.json          # SonarQube integration format
+├── gosec-detailed.json        # Detailed security findings
+├── gosec-text.txt            # Human-readable security report
+├── coverage.html             # Interactive coverage report
+├── staticcheck-report.json   # Static analysis results
+├── govulncheck-report.json   # Dependency vulnerabilities
+└── security-summary.md       # Executive summary
+```
+
+## 🔧 Configuration
+
+### Project Configuration
+
+Edit `sonar-project.properties` to customize:
+
+```properties
+# Basic settings
+sonar.projectKey=my-go-project
+sonar.projectName=My Go Project
+
+# Exclude files from analysis
+sonar.exclusions=vendor/**,**/*_test.go
+
+# Security scan integration
+sonar.go.gosec.reportPaths=reports/gosec-report.json
+```
+
+### Custom Security Rules
+
+To ignore specific security issues:
+
+```properties
+# Ignore security rules in test files
+sonar.issue.ignore.multicriteria=tests
+sonar.issue.ignore.multicriteria.tests.ruleKey=*
+sonar.issue.ignore.multicriteria.tests.resourceKey=**/*_test.go
+```
+
+## 🎯 Quality Gates
+
+The project enforces these quality standards:
+
+- **Security Rating**: A (no vulnerabilities)
+- **Reliability Rating**: A (no bugs)
+- **Test Coverage**: >80%
+- **Code Smells**: <10 per 1k lines
+- **Duplicated Lines**: <3%
+
+## 🔄 Development Workflow
+
+### Pre-commit Hook
+
+Add to `.git/hooks/pre-commit`:
+
+```bash
+#!/bin/bash
+make quick-security
+if [ $? -ne 0 ]; then
+    echo "❌ Security issues found. Fix before committing."
+    exit 1
+fi
+```
+
+### IDE Integration
+
+Most IDEs support SonarQube integration:
+
+- **VS Code**: SonarLint extension
+- **GoLand**: SonarLint plugin
+- **Vim/Neovim**: Use Language Server Protocol (LSP)
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+**SonarQube connection issues:**
+```bash
+# Check connectivity
+curl -u $SONAR_TOKEN: $SONAR_HOST_URL/api/system/status
+
+# Use Docker scanner
+make sonar-scan-docker
+```
+
+**Permission denied errors:**
+```bash
+# Fix Go binary path
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
+### Getting Help
+
+```bash
+# Show all available commands
+make help
+
+# View detailed logs
+make all VERBOSE=1
+```
+
+## 📚 Additional Resources
+
+- [Gosec Rules Documentation](https://github.com/securego/gosec)
+- [SonarQube Go Plugin](https://docs.sonarqube.org/latest/analysis/languages/go/)
+- [Go Security Best Practices](https://golang.org/doc/security)
+
+---
+
+> 💡 **Pro Tip**: Run `make quick-security` frequently during development to catch security issues early, and `make all` before creating pull requests to ensure code quality standards are met.
+
+---
+
 **Built with ❤️ for educational purposes**
