@@ -61,20 +61,7 @@ func (h *PaymentHandler) GetUserPayments(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
-	// Use appropriate user type
-	var userType models.UserType
-	switch currentUser.UserType {
-	case models.UserTypeUser:
-		userType = models.UserTypeUser
-	case models.UserTypeSeller:
-		userType = models.UserTypeUser // Sellers viewing their purchases as customers
-	case models.UserTypeAdmin:
-		userType = models.UserTypeUser
-	default:
-		userType = models.UserTypeUser
-	}
-
-	payments, err := h.paymentService.GetUserPayments(currentUser.UserID, userType, limit, offset)
+	payments, err := h.paymentService.GetUserPayments(currentUser.UserID, models.UserTypeUser, limit, offset)
 	if err != nil {
 		utils.InternalErrorResponse(c, err.Error())
 		return
