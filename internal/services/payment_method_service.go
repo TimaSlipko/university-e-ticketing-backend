@@ -227,7 +227,7 @@ func (s *PaymentMethodService) generateMockToken() (string, error) {
 
 func (s *PaymentMethodService) buildPaymentMethodResponse(method *models.PaymentMethod) *PaymentMethodResponse {
 	var data CreatePaymentMethodData
-	json.Unmarshal([]byte(method.Data), &data)
+	_ = json.Unmarshal([]byte(method.Data), &data)
 
 	response := &PaymentMethodResponse{
 		ID:         method.ID,
